@@ -5,6 +5,9 @@ REPO_URL="https://github.com/libimobiledevice/idevicerestore.git"
 REPO_DIR="idevicerestore"
 DOCKER_SUBDIR="docker"
 
+# Remember where we started so cleanup can safely remove the repo directory.
+START_DIR="$(pwd)"
+
 # Default restore args (matches your screenshot).
 # You can override by passing args to this script, e.g.:
 #   ./idevicerestore_docker_restore.sh --latest
@@ -57,6 +60,21 @@ start_usbmuxd_if_needed() {
 cleanup() {
   # Always try to restore usbmuxd state if we stopped it.
   start_usbmuxd_if_needed
+
+  # Remove the repo folder we cloned/updated so the script leaves no artifacts behind.
+  # (We cd back to the starting directory first so we are not inside the folder we're deleting.)
+  local repo_path
+  if [[ "$REPO_DIR" = /* ]]; then
+    repo_path="$REPO_DIR"
+  else
+    repo_path="${START_DIR}/${REPO_DIR}"
+  fi
+
+  if [[ -d "$repo_path" ]]; then
+    cd "$START_DIR" 2>/dev/null || true
+    echo "[*] Cleaning up: removing '${repo_path}'..."
+    sudo rm -rf "$repo_path" 2>/dev/null || rm -rf "$repo_path" || true
+  fi
 }
 trap cleanup EXIT
 
