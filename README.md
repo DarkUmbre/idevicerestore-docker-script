@@ -6,7 +6,7 @@
 A tiny wrapper script (`idevicerestore_docker_restore.sh`) that automates the **Docker-based** workflow from the official **libimobiledevice/idevicerestore** project: build the container, then run `idevicerestore` against a USB-connected iOS/iPadOS device.
 
 > **⚠️ Data-loss warning:** `idevicerestore` can **irreversibly destroy user data**. Back up your device first and use at your own risk. citeturn1view0  
-> This script defaults to `--erase --latest`, which performs a full restore and **erases all data**. citeturn6view0
+> This script defaults to `--erase --latest`, which performs a full restore and **erases all data**.
 
 ---
 
@@ -23,10 +23,9 @@ the script:
 1. Ensures the `idevicerestore` repo exists locally (expected folder: `./idevicerestore`).
 2. Changes into `idevicerestore/docker/`.
 3. Runs the upstream Docker helper scripts:
-   - `build.sh` to build an image (`idevicerestore-docker`) citeturn1view0turn3view0
-   - `run.sh …` to start the container and run `idevicerestore` citeturn1view0turn3view0
-
-`run.sh` runs the container with privileges and host networking, mounts `/dev` and udev control sockets, and calls `idevicerestore.sh`, which starts `usbmuxd` and then runs `idevicerestore "$@"`. citeturn3view0
+   - `build.sh` to build an image (`idevicerestore-docker`)
+   - `run.sh …` to start the container and run `idevicerestore`
+   - `run.sh` runs the container with privileges and host networking, mounts `/dev` and udev control sockets, and calls `idevicerestore.sh`, which starts `usbmuxd` and then runs `idevicerestore "$@"`.
 
 ---
 
@@ -39,8 +38,8 @@ the script:
   - **sudo** access (this script calls `sudo ./build.sh` and `sudo ./run.sh`)
 - A USB connection to the iOS/iPadOS device (reliable cable/port recommended).
 
-> Note: the upstream Docker workflow starts `usbmuxd` **inside the container** before launching `idevicerestore`. citeturn1view0turn3view0  
-> If you have trouble detecting devices, one community workaround is to stop/disable `usbmuxd` on the host because the container starts its own instance. citeturn7view0
+> Note: the upstream Docker workflow starts `usbmuxd` **inside the container** before launching `idevicerestore`.
+> If you have trouble detecting devices, one community workaround is to stop/disable `usbmuxd` on the host because the container starts its own instance. 
 
 ---
 
@@ -57,8 +56,8 @@ With **no arguments**, the script uses:
 --erase --latest
 ```
 
-- `--latest` downloads (on-demand) the **latest available firmware** and asks you to choose from **currently signed** versions unless you also pass `-y`. citeturn6view0  
-- `--erase` performs a full restore (wipe). citeturn6view0
+- `--latest` downloads (on-demand) the **latest available firmware** and asks you to choose from **currently signed** versions unless you also pass `-y`.
+- `--erase` performs a full restore (wipe).
 
 ---
 
@@ -70,9 +69,10 @@ With **no arguments**, the script uses:
 ./idevicerestore_docker_restore.sh --latest
 ```
 
-By default, `idevicerestore --latest` performs an update restore that preserves user data when possible. citeturn1view0turn6view0
+By default, `idevicerestore --latest` performs an update restore that preserves user data when possible.
 
-### Factory reset (wipe + latest signed firmware)
+### Factory reset (wipe + latest signed firmware)citeturn1view0turn3view0
+
 
 ```bash
 ./idevicerestore_docker_restore.sh --erase --latest
@@ -84,7 +84,7 @@ By default, `idevicerestore --latest` performs an update restore that preserves 
 ./idevicerestore_docker_restore.sh --erase --latest -y
 ```
 
-`-y/--no-input` disables prompts and some safety checks; use with extra caution. citeturn6view0
+`-y/--no-input` disables prompts and some safety checks; use with extra caution.
 
 ### Restore from a local IPSW file
 
@@ -92,8 +92,8 @@ By default, `idevicerestore --latest` performs an update restore that preserves 
 ./idevicerestore_docker_restore.sh /path/to/Firmware.ipsw
 ```
 
-The `PATH` argument can be a `.ipsw` or an extracted IPSW directory. citeturn6view0  
-(If you also use `--latest`, `PATH` is ignored.) citeturn6view0
+The `PATH` argument can be a `.ipsw` or an extracted IPSW directory.
+(If you also use `--latest`, `PATH` is ignored.)
 
 ---
 
@@ -106,14 +106,14 @@ The `PATH` argument can be a `.ipsw` or an extracted IPSW directory. citet
 
 ### Device not detected / USB issues
 - Try a different cable/port.
-- Ensure the container is allowed USB access (the upstream `run.sh` uses `--privileged` and mounts `/dev`). citeturn3view0
-- If you suspect a `usbmuxd` conflict, try stopping host `usbmuxd` (community suggestion). citeturn7view0
+- Ensure the container is allowed USB access (the upstream `run.sh` uses `--privileged` and mounts `/dev`).
+- If you suspect a `usbmuxd` conflict, try stopping host `usbmuxd` (community suggestion).
 
 ### “iPhone locked to owner” after restore
-A restore can complete successfully and still boot to “**iPhone Locked to Owner**” if Activation Lock is enabled on that device/account. (You’ll need the original Apple ID credentials to proceed.) citeturn8view0
+A restore can complete successfully and still boot to “**iPhone Locked to Owner**” if Activation Lock is enabled on that device/account. (You’ll need the original Apple ID credentials to proceed.)
 
 ### “Device failed to enter restore mode”
-This can happen mid-restore (often reported as “most likely image personalization failed”). Try another cable/port and ensure you’re restoring a currently signed IPSW. citeturn9view0
+This can happen mid-restore (often reported as “most likely image personalization failed”). Try another cable/port and ensure you’re restoring a currently signed IPSW.
 
 ---
 
@@ -137,10 +137,10 @@ DOCKER_DIR="${REPO_DIR}/${DOCKER_SUBDIR}"
 ## More options / documentation
 
 - Run `idevicerestore --help` or consult the man page for the full option list. citeturn6view0
-- Upstream project documentation (including Docker workflow notes). citeturn1view0
+- Upstream project documentation (including Docker workflow notes).
 
 ---
 
 ## Credits
 
-- Uses the upstream Docker workflow shipped with **libimobiledevice/idevicerestore**. citeturn1view0turn3view0
+- Uses the upstream Docker workflow shipped with **libimobiledevice/idevicerestore**.
