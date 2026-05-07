@@ -1,4 +1,4 @@
-*Before reading this beaware this was created by ChatGPT.
+*Before reading this, be aware this was created by ChatGPT.
 
 
 # idevicerestore Docker Restore Helper
