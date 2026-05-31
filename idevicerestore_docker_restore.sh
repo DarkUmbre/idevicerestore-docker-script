@@ -5,13 +5,9 @@ REPO_URL="https://github.com/libimobiledevice/idevicerestore.git"
 REPO_DIR="idevicerestore"
 DOCKER_SUBDIR="docker"
 
-# Remember where we started so cleanup can safely remove the repo directory.
 START_DIR="$(pwd)"
 
-# Default restore args (matches your screenshot).
-# You can override by passing args to this script, e.g.:
-#   ./idevicerestore_docker_restore.sh --latest
-#   ./idevicerestore_docker_restore.sh --erase --latest
+# Default restore args.
 RUN_ARGS=("$@")
 if [[ ${#RUN_ARGS[@]} -eq 0 ]]; then
   RUN_ARGS=(--erase --latest)
@@ -26,55 +22,42 @@ need_cmd() {
 
 need_cmd git
 need_cmd sudo
+need_cmd docker
 
-# Best-effort systemctl handling (skip if not present).
 USBMUXD_WAS_ACTIVE=0
 USBMUXD_MANAGED=0
 
-service_exists_systemd() {
-  systemctl list-unit-files --type=service --no-legend 2>/dev/null | awk '{print $1}' | grep -qx "usbmuxd.service"
-}
-
 stop_usbmuxd() {
-  if command -v systemctl >/dev/null 2>&1 && service_exists_systemd; then
+  if command -v systemctl >/dev/null 2>&1; then
     USBMUXD_MANAGED=1
-    if systemctl is-active --quiet usbmuxd; then
+    # We must check and stop BOTH the service and the socket. 
+    # Otherwise, udev will restart usbmuxd on the host mid-restore when the device reboots.
+    if systemctl is-active --quiet usbmuxd.service 2>/dev/null || systemctl is-active --quiet usbmuxd.socket 2>/dev/null; then
       USBMUXD_WAS_ACTIVE=1
-      echo "[*] Stopping usbmuxd (systemd)..."
-      sudo systemctl stop usbmuxd
+      echo "[*] Stopping usbmuxd (systemd service & socket)..."
+      sudo systemctl stop usbmuxd.socket usbmuxd.service 2>/dev/null || true
     else
       echo "[*] usbmuxd is not active; not stopping."
     fi
   else
-    echo "[*] systemctl/usbmuxd.service not found; skipping stop/start of usbmuxd."
+    echo "[*] systemctl not found; skipping stop/start of usbmuxd."
   fi
 }
 
 start_usbmuxd_if_needed() {
   if (( USBMUXD_MANAGED == 1 )) && (( USBMUXD_WAS_ACTIVE == 1 )); then
     echo "[*] Starting usbmuxd (systemd)..."
-    sudo systemctl start usbmuxd || true
+    sudo systemctl start usbmuxd.socket usbmuxd.service 2>/dev/null || true
   fi
 }
 
 cleanup() {
   # Always try to restore usbmuxd state if we stopped it.
   start_usbmuxd_if_needed
-
-  # Remove the repo folder we cloned/updated so the script leaves no artifacts behind.
-  # (We cd back to the starting directory first so we are not inside the folder we're deleting.)
-  local repo_path
-  if [[ "$REPO_DIR" = /* ]]; then
-    repo_path="$REPO_DIR"
-  else
-    repo_path="${START_DIR}/${REPO_DIR}"
-  fi
-
-  if [[ -d "$repo_path" ]]; then
-    cd "$START_DIR" 2>/dev/null || true
-    echo "[*] Cleaning up: removing '${repo_path}'..."
-    sudo rm -rf "$repo_path" 2>/dev/null || rm -rf "$repo_path" || true
-  fi
+  
+  # Deliberately removed the 'rm -rf $REPO_DIR' logic from the original script.
+  # Deleting it wiped downloaded IPSW caches and forced full docker rebuilds every run.
+  echo "[*] Cleanup complete. Left '${REPO_DIR}' intact to preserve firmware cache."
 }
 trap cleanup EXIT
 
@@ -98,12 +81,25 @@ if [[ ! -d "$DOCKER_DIR" ]]; then
   exit 1
 fi
 
+# Fix for local IPSW files
+declare -a PROCESSED_ARGS=()
+for arg in "${RUN_ARGS[@]}"; do
+  if [[ -f "$arg" && "$arg" == *.ipsw ]]; then
+    filename=$(basename "$arg")
+    echo "[*] Local IPSW detected. Copying '$arg' to '$DOCKER_DIR' for Docker context..."
+    cp "$arg" "${DOCKER_DIR}/${filename}"
+    PROCESSED_ARGS+=("$filename")
+  else
+    PROCESSED_ARGS+=("$arg")
+  fi
+done
+
 cd "$DOCKER_DIR"
 
 echo "[*] Building docker container (sudo ./build.sh)..."
 sudo ./build.sh
 
-echo "[*] Running restore (sudo ./run.sh ${RUN_ARGS[*]})..."
-sudo ./run.sh "${RUN_ARGS[@]}"
+echo "[*] Running restore (sudo ./run.sh ${PROCESSED_ARGS[*]})..."
+sudo ./run.sh "${PROCESSED_ARGS[@]}"
 
 echo "[*] Done."
